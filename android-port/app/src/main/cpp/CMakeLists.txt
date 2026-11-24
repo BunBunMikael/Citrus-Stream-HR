@@ -41,6 +41,7 @@ target_compile_definitions(jpeg12 PRIVATE BITS_IN_JSAMPLE=12 GIF_SUPPORTED PPM_S
 target_compile_definitions(jpeg8 PRIVATE BITS_IN_JSAMPLE=8 BMP_SUPPORTED GIF_SUPPORTED PPM_SUPPORTED)
 
 file(GLOB JPEG_ROOT "${NTR_SOURCE_DIR}/jpeg_turbo/*.c")
+set_source_files_properties(${JPEG_ROOT} PROPERTIES COMPILE_DEFINITIONS "BMP_SUPPORTED;GIF_SUPPORTED;PPM_SUPPORTED")
 file(GLOB JPEG_ARM "${NTR_SOURCE_DIR}/jpeg_turbo/simd/arm/*.c" "${NTR_SOURCE_DIR}/jpeg_turbo/simd/arm/aarch64/*.c")
 set_source_files_properties(${JPEG_ARM} PROPERTIES COMPILE_DEFINITIONS NEON_INTRINSICS)
 file(GLOB NUKLEAR "${NTR_SOURCE_DIR}/nuklear/*.c")

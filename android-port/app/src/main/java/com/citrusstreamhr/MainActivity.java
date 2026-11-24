@@ -99,7 +99,7 @@ public class MainActivity extends SDLActivity {
     }
 
     private void addSettingsButton() {
-        ViewGroup decor = (ViewGroup) getWindow().getDecorView();
+        ViewGroup decor = mLayout != null ? mLayout : (ViewGroup) getWindow().getDecorView();
         Button button = new Button(this);
         button.setText("⚙ Settings");
         button.setAllCaps(false);
