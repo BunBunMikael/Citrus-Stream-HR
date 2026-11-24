@@ -11,6 +11,7 @@
 
 #include <errno.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define NWM_THREAD_WAIT_NS (100000000)
 
@@ -228,12 +229,29 @@ extern pthread_condattr_t rp_cond_attr;
 #else
 #define rp_sem_create(n, i, m) rp_sem_init(n, i)
 #define rp_sem_init(n, i) sem_init(&(n), 0, i)
+#ifdef __ANDROID__
+#define rp_sem_timedwait(n, to_ns, e) ({ \
+	struct timespec _to; \
+	int _ret = 0; \
+	if (clock_gettime(CLOCK_REALTIME, &_to) != 0) { \
+		_ret = errno; \
+	} else { \
+		_to.tv_nsec += (to_ns); \
+		_to.tv_sec += _to.tv_nsec / 1000000000; \
+		_to.tv_nsec %= 1000000000; \
+		_ret = sem_timedwait(&(n), &_to); \
+		if (_ret) { _ret = errno; } \
+	} \
+	_ret; \
+})
+#else
 #define rp_sem_timedwait(n, to_ns, e) ({ \
 	struct timespec _to = clock_monotonic_abs_ns_from_now(to_ns); \
 	int _ret = sem_clockwait(&(n), CLOCK_MONOTONIC, &_to); \
 	if (_ret) { _ret = errno; } \
 	_ret; \
 })
+#endif
 #define rp_sem_trywait(n) ({ \
 	int _ret = sem_trywait(&(n)); \
 	if (_ret) { \
