@@ -1,0 +1,4 @@
+.build-sdl-java/
+.gradle/
+local.properties
+**/build/

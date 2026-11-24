@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.citrusstreamhr'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.citrusstreamhr'
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-DSDL_SOURCE_DIR=${rootDir}/../.build-sdl",
+                          "-DNTR_SOURCE_DIR=${rootDir}/upstream"
+                cppFlags '-std=c++17'
+                cFlags '-std=gnu11'
+            }
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs += file("${rootDir}/.build-sdl-java")
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+            version '3.22.1'
+        }
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging true
+        }
+    }
+}

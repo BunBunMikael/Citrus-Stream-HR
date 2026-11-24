@@ -1,121 +1,28 @@
-# AdorableNTR
+# Citrus Stream HR
 
-AdorableNTR is a mobile streaming application designed to connect to a Nintendo 3DS using custom firmware and BootNTR. It leverages a UDP server and TCP sockets to stream video data from the 3DS to your mobile device. Additionally, AdorableNTR allows you to record the stream directly from the application.
+Citrus Stream HR is an Android port of **NTR Viewer HR**. The Android build uses the original NTR Viewer HR C/C++ streaming, decoding, reliable-stream, and input-redirection code; it does not reimplement the NTR protocol in a separate mobile networking stack. The exact source revision supplied for this port is vendored in `android-port/upstream/` by the first Android Actions run.
 
-## Features
+## Android build
 
-- **Real-time streaming**: Stream video data from your Nintendo 3DS to your mobile device.
-- **Recording functionality**: Record the live stream.
+The `android-port` project builds a native arm64 Android APK with SDL 3.4.20 and the exact NTR Viewer HR source revision supplied for this port (`930f194d754141517fc247e9ce8e8392fbf70691`). The first GitHub Actions run imports that pinned upstream source into `android-port/upstream/`, applies the Android platform adaptations there, and commits the source to this repository. Subsequent builds use the vendored copy.
 
-## Requirements
+To build locally, provide the Android SDK/NDK, Gradle 8.11.1, SDL 3.4.20 source in `.build-sdl`, and the vendored NTR Viewer HR source in `android-port/upstream/`, then run:
 
-- Nintendo 3DS with custom firmware
-- BootNTR running on the 3DS
-- Java Development Kit (JDK)
-- Node.js and npm
-- React Native CLI
-- Android Studio (for Android development)
-- Xcode (for iOS development)
+```sh
+python3 android-port/app/src/main/cpp/apply_android.py
+gradle -p android-port assembleDebug
+```
 
-## Installation
+The installable debug APK is produced at `android-port/app/build/outputs/apk/debug/app-debug.apk`.
 
-1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/Auth-Xero/adorableNTR-react.git
-    cd adorableNTR-react
-    ```
+## Android interface
 
-2. **Install dependencies:**
-    ```bash
-    npm install
-    ```
+Both 3DS screens are rendered in a single portrait Activity, with the top screen above the bottom screen. The floating **Settings** control opens the connection and streaming settings, including 3DS IP, viewer interface, port, quality, bandwidth, compression protocol, screen priority, audio, Full Width, statistics, and auto-reconnect.
 
-3. **Set up the JNI environment:**
-    - Follow the instructions in the `jni/README.md` to set up the JNI environment for processing the JPEG data.
+The app keeps the display awake and requests a Wi-Fi performance lock while active so Android is less likely to interrupt a stream during play.
 
-4. **Build the project:**
-    ```bash
-    npm run build
-    ```
+## Upstream and licenses
 
-5. **Run the app:**
-    ```bash
-    npm start
-    ```
-
-6. **Run on your mobile device:**
-    - **For Android:**
-        - Connect your mobile device to your development machine.
-        - Start the React Native packager:
-            ```bash
-            npx react-native start
-            ```
-        - In another terminal window, run:
-            ```bash
-            npx react-native run-android
-            ```
-    - **For iOS:**
-        - Open the project in Xcode:
-            ```bash
-            npx react-native run-ios
-            ```
-        - Ensure your iOS device is connected to your development machine and select it as the build target in Xcode.
-        - Click the "Run" button in Xcode to build and launch the app on your device.
-
-## Usage
-
-1. **Launch BootNTR on your Nintendo 3DS:**
-    - Ensure your 3DS is connected to the same network as your mobile device.
-    - Start BootNTR on your 3DS.
-
-2. **Connect to the 3DS from AdorableNTR:**
-    - Open the AdorableNTR application on your mobile device.
-    - Enter the IP address of your 3DS in the connection settings.
-    - Click "Connect" to start streaming.
-
-3. **Recording the Stream:**
-    - Toggle the "Enable Recording" switch in the application settings.
-    - Use the "Start Recording" button to begin recording the stream.
-    - Click "Stop Recording" to end the recording session.
-
-## Troubleshooting
-
-- **Connection issues:**
-    - Ensure both the 3DS and your mobile device are on the same network.
-    - Verify the IP address of your 3DS is correctly entered in the application.
-    - If the stream does not start, try rebooting your 3DS and restarting the BootNTR app.
-
-- **Recording problems:**
-    - Check that you have write permissions to the specified save location.
-    - Ensure the recording feature is enabled in the settings.
-
-## Contributing
-
-We welcome contributions to AdorableNTR! If you have suggestions, bug reports, or want to contribute code, please open an issue or submit a pull request on GitHub.
-
-## License
-
-AdorableNTR is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
-
-## Acknowledgments
-
-Special thanks to the homebrew community and everyone who contributed to the development of custom firmware and BootNTR for the Nintendo 3DS.
-
----
-
-Feel free to reach out with any questions or feedback. Happy streaming!
-
----
-
-### Contact
-
-- **GitHub**: [Auth-Xero](https://github.com/Auth-Xero)
-- **Email**: authxero@gmail.com
-
----
-
-This project is not affiliated with or endorsed by Nintendo. The Nintendo 3DS and other trademarks are properties of Nintendo.
-
----
-
-**Note:** Ensure you have the necessary legal rights to use and distribute any firmware or software associated with this project.
+- NTR Viewer HR: https://github.com/xzn/ntrviewer-hr
+- SDL: https://github.com/libsdl-org/SDL
+- The original upstream license and third-party notices are in the upstream source tree fetched by the build. This Android port does not replace those licenses.
