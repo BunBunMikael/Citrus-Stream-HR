@@ -56,32 +56,6 @@ jobs:
       - name: Install JavaScript dependencies
         run: npm ci
 
-      - name: Correct FFmpeg dependency substitution syntax
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-          path = Path("android/app/build.gradle")
-          text = path.read_text()
-          pattern = re.compile(
-              r"substitute\s+module\(['\"]com\.arthenica:ffmpeg-kit-https:6\.0-2['\"]\)\s+using\s+module\(['\"]dev\.ffmpegkit-maintained:ffmpeg-kit-https:6\.0\.3['\"]\)"
-          )
-          replacement = (
-              "substitute(module('com.arthenica:ffmpeg-kit-https:6.0-2'))\n"
-              "             .using(module('dev.ffmpegkit-maintained:ffmpeg-kit-https:6.0.3'))"
-          )
-          updated, count = pattern.subn(replacement, text, count=1)
-          if count != 1:
-              print("Current dependency substitution block:")
-              lines = text.splitlines()
-              for i, line in enumerate(lines):
-                  if "substitute" in line:
-                      print("\n".join(lines[max(0, i-1):i+4]))
-              raise SystemExit("Could not identify the FFmpeg substitution block; no files changed.")
-          path.write_text(updated)
-          print("Corrected FFmpeg dependency substitution syntax.")
-          PY
-
       - name: Build debug and release APKs
         working-directory: android
         run: |
