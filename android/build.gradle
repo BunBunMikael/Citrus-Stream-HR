@@ -31,3 +31,13 @@ allprojects {
         }
     }
 }
+
+// FFmpegKit's replacement artifact does not bring SmartException transitively.
+// Add the runtime dependency to the Android app, where FFmpegKit is consumed.
+subprojects {
+    afterEvaluate {
+        if (project.path == ":app") {
+            dependencies.add("implementation", "com.arthenica:smart-exception-java:0.2.1")
+        }
+    }
+}
