@@ -427,7 +427,6 @@ public class MainActivity extends SDLActivity {
             }
             nativeSetIp(ip);
             nativeSetPort(port);
-            viewerIp.setText(nativeGetViewerIp());
             Toast.makeText(this, "Connection settings applied.", Toast.LENGTH_SHORT).show();
             refreshConnection();
         });
