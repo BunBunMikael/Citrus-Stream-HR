@@ -201,7 +201,8 @@ Java_com_citrusstreamhr_MainActivity_nativeSetDetectedIp(JNIEnv *env, jclass cls
     if (index >= 0 && index < ntr_auto_ip_count) {
         ntr_selected_ip = index;
         if (index > 0 && ntr_auto_ip_octet_list && ntr_auto_ip_octet_list[index]) {
-            memcpy(ntr_ip_octet, ntr_auto_ip_octet_list[index], NTR_IP_OCTET_SIZE);
+            for (int i = 0; i < NTR_IP_OCTET_SIZE; ++i)
+                atomic_store(&ntr_ip_octet[i], ntr_auto_ip_octet_list[index][i]);
             if (atomic_load(&menu_work_state) == CONNECTION_STATE_CONNECTED)
                 atomic_store(&menu_work_req_state, CONNECTION_REQ_STATE_DISCONNECTING);
             ntr_get_adapter_list();
