@@ -1,0 +1,42 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  build-macos-package:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: ntrviewer-hr
+      - uses: actions/checkout@v5
+        with:
+          repository: bloc97/Anime4K
+          path: Anime4K
+          ref: 7684e9586f8dcc738af08a1cdceb024cc184f426
+      - uses: actions/checkout@v5
+        with:
+          repository: libretro/slang-shaders
+          path: slang-shaders
+          ref: 637d7bb446be52c606900bb65a13dcf3c1a3fa10
+      - name: Get artifact
+        id: artifact-name
+        run: |
+          RUN=$(gh run list --repo ${{ github.repository }} -L 1 -w macos_app.yml --json databaseId -q '.[0].databaseId')
+          gh run download --repo ${{ github.repository }} $RUN -n macos-app -D macos-app
+          RUN=$(gh run list --repo ${{ github.repository }} -L 1 -w macos_app_intel.yml --json databaseId -q '.[0].databaseId')
+          gh run download --repo ${{ github.repository }} $RUN -n macos-app-intel -D macos-app-intel
+          RUN=$(gh run list --repo ${{ github.repository }} -L 1 -w macos_rcodesign.yml --json databaseId -q '.[0].databaseId')
+          gh run download --repo ${{ github.repository }} $RUN -n rcodesign -D .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package NTRViewer-HR
+        run: |
+          mkdir cargo-bin
+          mv rcodesign cargo-bin/
+          export PATH=$(PWD)/cargo-bin:$PATH
+          ntrviewer-hr/macos-scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NTRViewer-HR-macOS-Universal.zip
+          path: NTRViewer-HR-macOS-Universal.zip
+          compression-level: 0

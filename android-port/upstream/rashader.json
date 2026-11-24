@@ -1,0 +1,20 @@
+{
+    "modes": [
+        {
+            "name": "Sharp",
+            "preset": "pixel-art-scaling/sharp-shimmerless"
+        },
+        {
+            "name": "SMAA + FSR",
+            "preset": "edge-smoothing/fsr/smaa+fsr"
+        },
+        {
+            "name": "NNEDI3",
+            "preset": "edge-smoothing/nnedi3/nnedi3-nns16-2x-luma"
+        },
+        {
+            "name": "Super XBR",
+            "preset": "edge-smoothing/xbr/super-xbr"
+        }
+    ]
+}

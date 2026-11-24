@@ -1,0 +1,14 @@
+*.o
+*.d
+*.exe
+*.dll
+*.zip
+include/lib*
+lib
+ra-*
+slang-*
+placebo-*
+
+ntrviewer*
+_*
+.DS_Store

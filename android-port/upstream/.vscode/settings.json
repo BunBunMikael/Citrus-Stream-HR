@@ -1,0 +1,15 @@
+{
+    "C_Cpp.default.intelliSenseMode": "windows-gcc-x64",
+    "C_Cpp.default.compilerPath": "/mingw64/bin/gcc",
+    "C_Cpp.default.defines": [
+        "_WIN32",
+        "NK_IMPLEMENTATION",
+        "NK_SDL_GL3_IMPLEMENTATION",
+        "NK_SDL_GLES2_IMPLEMENTATION",
+        "NK_SDL_RENDERER_IMPLEMENTATION",
+        "NK_D3D11_IMPLEMENTATION",
+    ],
+    "clangd.fallbackFlags": [
+        "-I${workspaceFolder}/include"
+    ],
+}

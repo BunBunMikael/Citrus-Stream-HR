@@ -1,0 +1,27 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  build-linux-sdl-arm:
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - name: Install prereq
+        run: |
+          sudo apt update
+          sudo apt install -y --fix-missing git curl cmake clang ninja-build meson python3 wget build-essential checkinstall zlib1g-dev libssl-dev pkg-config gh libvulkan-dev libopengl-dev libsdl2-dev gnome-desktop-testing libasound2-dev libpulse-dev libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
+      - uses: actions/checkout@v5
+        with:
+          repository: libsdl-org/SDL
+          path: SDL
+          ref: release-3.4.14
+      - name: Compile sdl
+        run: |
+          cd SDL
+          cmake -B build -DCMAKE_INSTALL_PREFIX=$(realpath ../linux-sdl-arm) -DBUILD_SHARED_LIBS=Off
+          cmake --build build
+          cmake --install build
+          cd ..
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-sdl-arm
+          path: linux-sdl-arm

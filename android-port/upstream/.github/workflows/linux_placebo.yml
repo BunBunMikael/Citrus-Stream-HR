@@ -1,0 +1,37 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  build-linux-placebo:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm-slim
+    steps:
+      - name: Install prereq
+        run: |
+          apt update
+          apt install -y --fix-missing git curl cmake clang ninja-build meson python3 wget build-essential checkinstall zlib1g-dev libssl-dev pkg-config gh libvulkan-dev
+      - uses: actions/checkout@v5
+        with:
+          repository: haasn/libplacebo
+          path: libplacebo
+          ref: v7.360.1
+          submodules: recursive
+      - name: Get artifact
+        id: artifact-name
+        run: |
+          RUN=$(gh run list --repo ${{ github.repository }} -L 1 -w linux_shaderc.yml --json databaseId -q '.[0].databaseId')
+          gh run download --repo ${{ github.repository }} $RUN -n linux-shaderc -D linux-shaderc
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compile placebo
+        run: |
+          cd libplacebo
+          CPATH=$(realpath 3rdparty/Vulkan-Headers/include) PKG_CONFIG_PATH=$(realpath ../linux-shaderc/lib/pkgconfig/) meson ./build/ --prefix=$(realpath ../linux-placebo) --default-library=static -Dlcms=disabled
+          ninja -C build
+          ninja install -C build
+          cd ..
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-placebo
+          path: linux-placebo

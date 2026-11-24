@@ -1,0 +1,26 @@
+on:
+  workflow_dispatch:
+
+jobs:
+  build-macos-rashader-intel:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          path: ntrviewer-hr
+      - uses: actions/checkout@v5
+        with:
+          repository: SnowflakePowered/librashader
+          path: librashader
+          ref: librashader-v0.12.0
+      - name: Compile librashader
+        run: |
+          ntrviewer-hr/macos-scripts/compile-rashader.sh
+          mkdir -p macos-rashader-intel/include
+          ln -s ../../librashader/include/librashader.h macos-rashader-intel/include/librashader.h
+          mkdir macos-rashader-intel/lib
+          ln -s ../../librashader/target/optimized/liblibrashader_capi.dylib macos-rashader-intel/lib/librashader.dylib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-rashader-intel
+          path: macos-rashader-intel

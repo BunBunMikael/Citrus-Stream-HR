@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+set -ex
+
+BIN_DIR=../ntrviewer-hr
+BIN=ntrviewer
+ARCH=$(uname -m)
+
+process () {
+    echo Processing "$2" for "$1"
+    SRC="$2"
+    LIB="$(basename $SRC)"
+    if [[ "$LIB" =~ lib(lib.+)_capi.dylib ]]; then
+        LIB="${BASH_REMATCH[1]}.dylib"
+    fi
+    DST="$ARCH/$LIB"
+    if [[ "$SRC" =~ ^@rpath/.* || "$SRC" =~ ^/opt/homebrew/opt/.* || "$SRC" =~ ^/opt/local/lib/.* || "$SRC" =~ ^/usr/local/opt/.* || "$SRC" =~ ^/Users/.* ]]; then
+        echo Third-party "$SRC"
+        if [ ! -f "$DST" ]; then
+            if [[ "$SRC" =~ ^.*librashader.* ]]; then
+                if [[ "$ARCH" == "arm64" ]]; then
+                    cp "../macos-rashader/lib/librashader.dylib" "$DST"
+                else
+                    cp "../macos-rashader-intel/lib/librashader.dylib" "$DST"
+                fi
+            elif [[ "$SRC" =~ ^@rpath/.* ]]; then
+                cp "/opt/local/lib/$LIB" "$DST"
+            else
+                cp "$SRC" "$DST"
+            fi
+            chmod 644 "$DST"
+            ( pre_process $DST )
+            install_name_tool -id "@rpath/$LIB" "$DST"
+            codesign -s "-" -f "$DST"
+        fi
+        install_name_tool -change "$SRC" "@rpath/$LIB" "$1"
+    elif [[ "$SRC" =~ ^/System/.* || "$SRC" =~ ^/usr/lib/.* ]]; then
+        echo System "$SRC"
+    else
+        echo Unknown "$SRC"
+    fi
+}
+
+pre_process () {
+    echo Preprocessing $1
+    OTOOL_L="$(otool -L $1)"
+    while IFS= read -r LINE; do
+        PAT='^[[:space:]]*(.+)[[:space:]]+\(compatibility version .+, current version .+\)$'
+        if [[ "$LINE" =~ $PAT ]]; then
+            ( process "$1" "${BASH_REMATCH[1]}" )
+        else
+            echo Skipping $LINE
+        fi
+    done <<< "$OTOOL_L"
+}
+
+echo Binary "$BIN" on "$ARCH"
+rm -f "$BIN"
+cp "$BIN_DIR/$BIN" "$BIN"
+rm -rf "$ARCH"
+mkdir -p "$ARCH"
+( pre_process $BIN )
+install_name_tool -rpath /opt/local/lib @executable_path/$ARCH "$BIN"
+codesign -s "-" -f "$BIN"
+
+ICD=MoltenVK_icd.json
+cp ~/VulkanSDK/$VULKAN_VERSION/macOS/share/vulkan/icd.d/$ICD $ARCH
+BAK=.bak
+sed -i $BAK 's/..\/..\/..\/lib/./g' $ARCH/$ICD
+rm $ARCH/$ICD$BAK
+MVK=libMoltenVK.dylib
+cp ~/VulkanSDK/$VULKAN_VERSION/macOS/lib/$MVK "$ARCH"
+lipo "$ARCH/$MVK" -extract "$ARCH" -output "$ARCH/$MVK"
+chmod 644 "$ARCH/$MVK"
