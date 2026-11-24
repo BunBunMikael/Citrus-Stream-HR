@@ -148,8 +148,15 @@ typedef void *thread_ret_t;
 #define thread_create(t, f, a) pthread_create(&(t), NULL, f, a)
 #define thread_exit(n) pthread_exit((thread_ret_t)n)
 #define thread_join(t) pthread_join(t, NULL)
+#ifdef __ANDROID__
+/* Android bionic does not expose pthread cancellation. These workers use
+ * nonblocking sockets or timed semaphore waits and observe their stop flags. */
+#define thread_cancel(t) ((void)0)
+#define thread_set_cancel_state(b) ((void)0)
+#else
 #define thread_cancel(t) pthread_cancel(t)
 #define thread_set_cancel_state(b) pthread_setcancelstate(b ? PTHREAD_CANCEL_ENABLE : PTHREAD_CANCEL_DISABLE, NULL)
+#endif
 #endif
 
 #define REST_EVERY_MS 100
