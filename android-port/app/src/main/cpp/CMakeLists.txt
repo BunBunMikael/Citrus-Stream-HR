@@ -75,11 +75,11 @@ add_library(main SHARED ${NTR_SOURCES})
 target_include_directories(main PRIVATE
     "${NTR_SOURCE_DIR}" "${NTR_SOURCE_DIR}/include"
     ${JPEG_INCLUDES})
-target_compile_definitions(main PRIVATE USE_SDL_RENDERER_ONLY EMBED_JPEG_TURBO GF256_TARGET_MOBILE _GNU_SOURCE)
+target_compile_definitions(main PRIVATE USE_SDL_RENDERER_ONLY EMBED_JPEG_TURBO _GNU_SOURCE)
 target_compile_options(main PRIVATE
     -O3 -fno-strict-aliasing -ffunction-sections -fdata-sections
     -Wno-unused-parameter -Wno-unused-function -Wno-missing-field-initializers
-    -Wno-sign-compare -Wno-stringop-overflow -Wno-implicit-fallthrough -Wno-restrict)
+    -Wno-sign-compare -Wno-stringop-overflow -Wno-implicit-fallthrough -Wno-restrict -Wno-c23-extensions)
 target_link_options(main PRIVATE -Wl,--gc-sections)
 target_link_libraries(main PRIVATE SDL3::SDL3 android log m)
 set_target_properties(main PROPERTIES OUTPUT_NAME main)
