@@ -37,6 +37,9 @@ public class MainActivity extends SDLActivity {
 
     private static native boolean nativeIsReady();
     private static native String nativeGetIp();
+    private static native String[] nativeGetDetectedIps();
+    private static native int nativeGetSelectedDetectedIp();
+    private static native void nativeSetDetectedIp(int index);
     private static native String nativeGetViewerIp();
     private static native String[] nativeGetViewerInterfaces();
     private static native int nativeGetViewerInterface();
@@ -264,10 +267,31 @@ public class MainActivity extends SDLActivity {
         EditText ipField = edit(nativeGetIp(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
                 "192.168.1.100");
         content.addView(ipField);
+        content.addView(text("Detected 3DS addresses", 14, false));
+        Spinner detectedIp = new Spinner(this);
+        String[] detectedIps = nativeGetDetectedIps();
+        if (detectedIps == null || detectedIps.length == 0) detectedIps = new String[]{"None Detected"};
+        ArrayAdapter<String> detectedAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, detectedIps);
+        detectedAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        detectedIp.setAdapter(detectedAdapter);
+        detectedIp.setSelection(Math.max(0, Math.min(detectedIps.length - 1, nativeGetSelectedDetectedIp())));
+        detectedIp.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                nativeSetDetectedIp(position);
+                ipField.setText(nativeGetIp());
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        content.addView(detectedIp);
         Button detect = actionButton("Auto-detect 3DS");
         detect.setOnClickListener(v -> {
             String detected = nativeAutoDetect();
             ipField.setText(detected);
+            String[] refreshed = nativeGetDetectedIps();
+            detectedAdapter.clear();
+            if (refreshed != null) detectedAdapter.addAll(java.util.Arrays.asList(refreshed));
+            detectedAdapter.notifyDataSetChanged();
+            detectedIp.setSelection(Math.max(0, Math.min(detectedAdapter.getCount() - 1, nativeGetSelectedDetectedIp())));
             Toast.makeText(this, "Detected address: " + detected, Toast.LENGTH_SHORT).show();
         });
         content.addView(detect);
@@ -427,6 +451,16 @@ public class MainActivity extends SDLActivity {
             }
             nativeSetIp(ip);
             nativeSetPort(port);
+            String[] refreshedIps = nativeGetDetectedIps();
+            detectedAdapter.clear();
+            if (refreshedIps != null) detectedAdapter.addAll(java.util.Arrays.asList(refreshedIps));
+            detectedAdapter.notifyDataSetChanged();
+            detectedIp.setSelection(Math.max(0, Math.min(detectedAdapter.getCount() - 1, nativeGetSelectedDetectedIp())));
+            String[] refreshedInterfaces = nativeGetViewerInterfaces();
+            networkAdapter.clear();
+            if (refreshedInterfaces != null) networkAdapter.addAll(java.util.Arrays.asList(refreshedInterfaces));
+            networkAdapter.notifyDataSetChanged();
+            networkInterface.setSelection(Math.max(0, Math.min(networkAdapter.getCount() - 1, nativeGetViewerInterface())));
             Toast.makeText(this, "Connection settings applied.", Toast.LENGTH_SHORT).show();
             refreshConnection();
         });

@@ -166,6 +166,8 @@ Java_com_citrusstreamhr_MainActivity_nativeAutoDetect(JNIEnv *env, jclass cls)
 {
     (void)cls;
     lock_settings();
+    if (atomic_load(&menu_work_state) == CONNECTION_STATE_CONNECTED)
+        atomic_store(&menu_work_req_state, CONNECTION_REQ_STATE_DISCONNECTING);
     ntr_detect_3ds_ip();
     ntr_try_auto_select_incoming_ip();
     ntr_get_adapter_list();
@@ -173,6 +175,40 @@ Java_com_citrusstreamhr_MainActivity_nativeAutoDetect(JNIEnv *env, jclass cls)
     return Java_com_citrusstreamhr_MainActivity_nativeGetIp(env, cls);
 }
 
+JNIEXPORT jobjectArray JNICALL
+Java_com_citrusstreamhr_MainActivity_nativeGetDetectedIps(JNIEnv *env, jclass cls)
+{
+    (void)cls; lock_settings();
+    int count = ntr_auto_ip_count > 0 ? ntr_auto_ip_count : 1;
+    jclass stringClass = (*env)->FindClass(env, "java/lang/String");
+    jobjectArray result = (*env)->NewObjectArray(env, count, stringClass, NULL);
+    for (int i = 0; i < count; ++i) {
+        const char *name = ntr_auto_ip_list && ntr_auto_ip_list[i] ? ntr_auto_ip_list[i] : "None Detected";
+        if (i == 0 && name[0] == 0) name = "Manual / detected";
+        jstring item = new_utf(env, name);
+        (*env)->SetObjectArrayElement(env, result, i, item);
+        (*env)->DeleteLocalRef(env, item);
+    }
+    unlock_settings(); return result;
+}
+JNIEXPORT jint JNICALL
+Java_com_citrusstreamhr_MainActivity_nativeGetSelectedDetectedIp(JNIEnv *env, jclass cls)
+{ (void)env; (void)cls; lock_settings(); int v=ntr_selected_ip; unlock_settings(); return v; }
+JNIEXPORT void JNICALL
+Java_com_citrusstreamhr_MainActivity_nativeSetDetectedIp(JNIEnv *env, jclass cls, jint index)
+{
+    (void)env; (void)cls; lock_settings();
+    if (index >= 0 && index < ntr_auto_ip_count) {
+        ntr_selected_ip = index;
+        if (index > 0 && ntr_auto_ip_octet_list && ntr_auto_ip_octet_list[index]) {
+            memcpy(ntr_ip_octet, ntr_auto_ip_octet_list[index], NTR_IP_OCTET_SIZE);
+            if (atomic_load(&menu_work_state) == CONNECTION_STATE_CONNECTED)
+                atomic_store(&menu_work_req_state, CONNECTION_REQ_STATE_DISCONNECTING);
+            ntr_get_adapter_list();
+        }
+    }
+    unlock_settings();
+}
 JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeRefreshNetwork(JNIEnv *env, jclass cls)
 {
@@ -280,20 +316,20 @@ JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeSetQuality(JNIEnv *env, jclass cls, jint value)
 {
     (void)env; (void)cls;
-    lock_settings(); ntr_rp_config.jpeg_quality = value; ntr_auto_q_reset_all(); kcp_restart = 1; unlock_settings();
+    lock_settings(); ntr_rp_config.jpeg_quality = value; ntr_auto_q_reset_all(); unlock_settings();
 }
 JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeSetBandwidth(JNIEnv *env, jclass cls, jint value)
 {
     (void)env; (void)cls;
-    lock_settings(); ntr_rp_config.bandwidth_limit = value; ntr_auto_q_reset_all(); kcp_restart = 1; unlock_settings();
+    lock_settings(); ntr_rp_config.bandwidth_limit = value; ntr_auto_q_reset_all(); unlock_settings();
 }
 JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeSetCompression(JNIEnv *env, jclass cls, jint value)
 {
     (void)env; (void)cls;
     if (value < 0 || value >= KCP_MODE_L_ON_DELTA + 1) return;
-    lock_settings(); ntr_rp_config.kcp_mode = value; ntr_auto_q_reset_all(); kcp_restart = 1; unlock_settings();
+    lock_settings(); ntr_rp_config.kcp_mode = value; ntr_auto_q_reset_all(); unlock_settings();
 }
 JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeSetPort(JNIEnv *env, jclass cls, jint value)
@@ -314,7 +350,6 @@ Java_com_citrusstreamhr_MainActivity_nativeSetPriority(JNIEnv *env, jclass cls, 
     lock_settings();
     ntr_rp_config.top_screen_priority = enabled ? nk_true : nk_false;
     ntr_rp_config.screen_priority_factor = factor < 0 ? 0 : factor > 255 ? 255 : factor;
-    kcp_restart = 1;
     unlock_settings();
 }
 JNIEXPORT void JNICALL
@@ -327,13 +362,13 @@ JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeSetAudio(JNIEnv *env, jclass cls, jboolean enabled)
 {
     (void)env; (void)cls;
-    lock_settings(); ntr_rp_config.audio_enable = enabled ? nk_true : nk_false; kcp_restart = 1; unlock_settings();
+    lock_settings(); ntr_rp_config.audio_enable = enabled ? nk_true : nk_false; unlock_settings();
 }
 JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeSetFullWidth(JNIEnv *env, jclass cls, jboolean enabled)
 {
     (void)env; (void)cls;
-    lock_settings(); ntr_rp_config.full_width = enabled ? nk_true : nk_false; kcp_restart = 1; unlock_settings();
+    lock_settings(); ntr_rp_config.full_width = enabled ? nk_true : nk_false; unlock_settings();
 }
 JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeSetAutoReconnect(JNIEnv *env, jclass cls, jboolean enabled)
@@ -376,5 +411,5 @@ JNIEXPORT void JNICALL
 Java_com_citrusstreamhr_MainActivity_nativeResetDefaults(JNIEnv *env, jclass cls)
 {
     (void)env; (void)cls;
-    lock_settings(); ntr_config_set_default(); kcp_restart = 1; unlock_settings();
+    lock_settings(); ntr_config_set_default(); unlock_settings();
 }
