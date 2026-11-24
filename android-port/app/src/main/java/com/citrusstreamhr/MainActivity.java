@@ -17,7 +17,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.FrameLayout;
+import android.widget.RelativeLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
@@ -35,8 +35,12 @@ public class MainActivity extends SDLActivity {
     private TextView connectionStatus;
     private Button connectionButton;
 
+    private static native boolean nativeIsReady();
     private static native String nativeGetIp();
     private static native String nativeGetViewerIp();
+    private static native String[] nativeGetViewerInterfaces();
+    private static native int nativeGetViewerInterface();
+    private static native void nativeSetViewerInterface(int index);
     private static native String nativeGetStatus();
     private static native String nativeAutoDetect();
     private static native void nativeRefreshNetwork();
@@ -51,6 +55,17 @@ public class MainActivity extends SDLActivity {
     private static native boolean nativeGetFullWidth();
     private static native boolean nativeGetAutoReconnect();
     private static native boolean nativeGetStats();
+    private static native boolean nativeGetAutoUpdateParams();
+    private static native boolean nativeGetSwapFaceButtons();
+    private static native int nativeGetUpscaling();
+    private static native int nativeGetBlurIterations();
+    private static native int nativeGetBlurRadius();
+    private static native int nativeGetCursorSize();
+    private static native int nativeGetScreenshotType();
+    private static native String[] nativeGetControllers();
+    private static native int nativeGetController();
+    private static native void nativeSetController(int index);
+    private static native void nativeRefreshControllers();
     private static native void nativeSetIp(String ip);
     private static native void nativeSetQuality(int quality);
     private static native void nativeSetBandwidth(int bandwidth);
@@ -62,6 +77,14 @@ public class MainActivity extends SDLActivity {
     private static native void nativeSetFullWidth(boolean enabled);
     private static native void nativeSetAutoReconnect(boolean enabled);
     private static native void nativeSetStats(boolean enabled);
+    private static native void nativeSetAutoUpdateParams(boolean enabled);
+    private static native void nativeSetSwapFaceButtons(boolean enabled);
+    private static native void nativeSetUpscaling(int value);
+    private static native void nativeSetBlurIterations(int value);
+    private static native void nativeSetBlurRadius(int value);
+    private static native void nativeSetCursorSize(int value);
+    private static native void nativeSetScreenshotType(int value);
+    private static native void nativeTakeScreenshot();
     private static native void nativeConnect();
     private static native void nativeDisconnect();
     private static native void nativeResetDefaults();
@@ -105,9 +128,20 @@ public class MainActivity extends SDLActivity {
         button.setAllCaps(false);
         button.setTextSize(13);
         button.setElevation(dp(8));
+        button.setEnabled(false);
         button.setOnClickListener(v -> showSettings());
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, dp(46), Gravity.TOP | Gravity.END);
+        button.postDelayed(new Runnable() {
+            @Override public void run() {
+                if (isFinishing()) return;
+                boolean ready = nativeIsReady();
+                button.setEnabled(ready);
+                if (!ready) button.postDelayed(this, 350);
+            }
+        }, 350);
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, dp(46));
+        params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        params.addRule(RelativeLayout.ALIGN_PARENT_END);
         params.setMargins(0, dp(24), dp(12), 0);
         decor.addView(button, params);
     }
@@ -238,12 +272,26 @@ public class MainActivity extends SDLActivity {
         });
         content.addView(detect);
         content.addView(text("Viewer network interface", 14, false));
-        TextView viewerIp = text(nativeGetViewerIp(), 14, false);
-        content.addView(viewerIp);
+        Spinner networkInterface = new Spinner(this);
+        String[] networkInterfaces = nativeGetViewerInterfaces();
+        if (networkInterfaces == null || networkInterfaces.length == 0) networkInterfaces = new String[]{"Auto-Select"};
+        ArrayAdapter<String> networkAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, networkInterfaces);
+        networkAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        networkInterface.setAdapter(networkAdapter);
+        networkInterface.setSelection(Math.max(0, Math.min(networkInterfaces.length - 1, nativeGetViewerInterface())));
+        networkInterface.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { nativeSetViewerInterface(position); }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        content.addView(networkInterface);
         Button refreshNetwork = actionButton("Refresh network interfaces");
         refreshNetwork.setOnClickListener(v -> {
             nativeRefreshNetwork();
-            viewerIp.setText(nativeGetViewerIp());
+            String[] refreshed = nativeGetViewerInterfaces();
+            networkAdapter.clear();
+            if (refreshed != null) networkAdapter.addAll(java.util.Arrays.asList(refreshed));
+            networkAdapter.notifyDataSetChanged();
+            networkInterface.setSelection(Math.max(0, Math.min(networkAdapter.getCount() - 1, nativeGetViewerInterface())));
         });
         content.addView(refreshNetwork);
 
@@ -282,10 +330,81 @@ public class MainActivity extends SDLActivity {
                 nativeSetPriority(enabled, nativeGetPriorityFactor()));
         addSlider(content, "Priority screen factor", 0, 255, nativeGetPriorityFactor(), value ->
                 nativeSetPriority(nativeGetTopPriority(), value));
+        content.addView(text("Upscaling filter", 14, false));
+        Spinner upscaling = new Spinner(this);
+        String[] upscalingOptions = {"Linear", "Pixel Art"};
+        ArrayAdapter<String> upscalingAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, upscalingOptions);
+        upscalingAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        upscaling.setAdapter(upscalingAdapter);
+        upscaling.setSelection(Math.max(0, Math.min(1, nativeGetUpscaling())));
+        upscaling.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { nativeSetUpscaling(position); }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        content.addView(upscaling);
         addSwitch(content, "Full Width (NTR-HR+)", nativeGetFullWidth(), MainActivity::nativeSetFullWidth);
         addSwitch(content, "Game audio (NTR-HR+)", nativeGetAudio(), MainActivity::nativeSetAudio);
         addSwitch(content, "Auto-reconnect", nativeGetAutoReconnect(), MainActivity::nativeSetAutoReconnect);
+        addSwitch(content, "Auto-update stream parameters", nativeGetAutoUpdateParams(), MainActivity::nativeSetAutoUpdateParams);
+        addSwitch(content, "Swap A/B and X/Y", nativeGetSwapFaceButtons(), MainActivity::nativeSetSwapFaceButtons);
         addSwitch(content, "Show streaming statistics", nativeGetStats(), MainActivity::nativeSetStats);
+        content.addView(text("Ambience quality", 14, false));
+        Spinner ambience = new Spinner(this);
+        String[] ambienceOptions = {"Off", "1", "2", "3"};
+        ArrayAdapter<String> ambienceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, ambienceOptions);
+        ambienceAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        ambience.setAdapter(ambienceAdapter);
+        ambience.setSelection(Math.max(0, Math.min(3, nativeGetBlurIterations())));
+        ambience.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { nativeSetBlurIterations(position); }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        content.addView(ambience);
+        addSlider(content, "Ambience blur radius", 3, 15, nativeGetBlurRadius(), MainActivity::nativeSetBlurRadius);
+
+        addSection(content, "Input redirection");
+        Spinner controller = new Spinner(this);
+        String[] controllers = nativeGetControllers();
+        if (controllers == null || controllers.length == 0) controllers = new String[]{"No controllers"};
+        ArrayAdapter<String> controllerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, controllers);
+        controllerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        controller.setAdapter(controllerAdapter);
+        controller.setSelection(Math.max(0, Math.min(controllers.length - 1, nativeGetController())));
+        controller.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { nativeSetController(position); }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        content.addView(controller);
+        Button refreshControllers = actionButton("Refresh game controllers");
+        refreshControllers.setOnClickListener(v -> {
+            nativeRefreshControllers();
+            controller.postDelayed(() -> {
+                String[] refreshed = nativeGetControllers();
+                controllerAdapter.clear();
+                if (refreshed != null) controllerAdapter.addAll(java.util.Arrays.asList(refreshed));
+                controllerAdapter.notifyDataSetChanged();
+                controller.setSelection(Math.max(0, Math.min(controllerAdapter.getCount() - 1, nativeGetController())));
+            }, 300);
+        });
+        content.addView(refreshControllers);
+        addSlider(content, "Bottom-screen cursor size", 0, 3, nativeGetCursorSize(), MainActivity::nativeSetCursorSize);
+
+        addSection(content, "Screenshots");
+        content.addView(text("Image format", 14, false));
+        Spinner screenshotType = new Spinner(this);
+        String[] screenshotTypes = {"BMP", "TGA", "PNG"};
+        ArrayAdapter<String> screenshotAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, screenshotTypes);
+        screenshotAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        screenshotType.setAdapter(screenshotAdapter);
+        screenshotType.setSelection(Math.max(0, Math.min(2, nativeGetScreenshotType())));
+        screenshotType.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) { nativeSetScreenshotType(position); }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        content.addView(screenshotType);
+        Button screenshot = actionButton("Save screenshot");
+        screenshot.setOnClickListener(v -> { nativeTakeScreenshot(); Toast.makeText(this, "Screenshot saved to app storage.", Toast.LENGTH_SHORT).show(); });
+        content.addView(screenshot);
 
         addSection(content, "Apply");
         Button apply = actionButton("Apply connection settings");

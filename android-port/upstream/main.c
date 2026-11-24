@@ -24,6 +24,7 @@
 #include "settings.h"
 #ifdef __ANDROID__
 #include <SDL3/SDL_main.h>
+void android_port_set_ready(void);
 #endif
 
 #include <math.h>
@@ -919,6 +920,9 @@ static void main_ntr(void) {
         goto join_timer;
     }
 
+#ifdef __ANDROID__
+    android_port_set_ready();
+#endif
     while (program_running)
         main_loop();
 
