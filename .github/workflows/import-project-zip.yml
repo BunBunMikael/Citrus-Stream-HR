@@ -1,0 +1,50 @@
+name: Import project ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      zip_path:
+        description: "ZIP file path in the repository"
+        required: true
+        default: "cuteNTR-android14-ci(2).zip"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Extract project into repository root
+        shell: bash
+        env:
+          ZIP_PATH: ${{ inputs.zip_path }}
+        run: |
+          set -euo pipefail
+          test -f "$ZIP_PATH" || { echo "ZIP not found: $ZIP_PATH"; exit 1; }
+          mkdir -p /tmp/project-import
+          unzip -q "$ZIP_PATH" -d /tmp/project-import
+          test -d /tmp/project-import/cuteNTR-react-main || {
+            echo "Expected cuteNTR-react-main/ at the ZIP root."
+            find /tmp/project-import -maxdepth 2 -type f | head -50
+            exit 1
+          }
+          cp -a /tmp/project-import/cuteNTR-react-main/. .
+          rm -f "$ZIP_PATH"
+
+      - name: Commit imported project
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Import Android 14 project from ZIP"
+          git push
