@@ -6,7 +6,7 @@ on:
       zip_path:
         description: "ZIP file path in the repository"
         required: true
-        default: "cuteNTR-android14-ci(2).zip"
+        default: "cuteNTR-android14-ci.zip"
 
 permissions:
   contents: write
