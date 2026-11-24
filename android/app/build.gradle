@@ -121,15 +121,6 @@ android {
     }
 }
 
-// FFmpegKit's original Android binaries were removed from Maven Central.
- // Keep the React Native bridge package, but redirect its retired native AAR
- // to the Android-compatible maintained replacement (same FFmpegKit API).
- configurations.configureEach {
-     resolutionStrategy.dependencySubstitution {
-         substitute module('com.arthenica:ffmpeg-kit-https:6.0-2') using
-             module('dev.ffmpegkit-maintained:ffmpeg-kit-https:6.0.3')
-     }
- }
 
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
