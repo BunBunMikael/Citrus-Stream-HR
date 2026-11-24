@@ -17,26 +17,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Check out Citrus Stream HR
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        name: Check out Citrus Stream HR
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
+        name: Set up Java
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
+        name: Set up Android SDK
+        with:
+          # Avoid the retired "tools" SDK package requested by the action default.
+          packages: platform-tools
 
       - name: Install Android build components
         run: |
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-36" \
-            "build-tools;36.0.0" \
-            "ndk;28.2.13676358" \
-            "cmake;3.22.1"
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;28.2.13676358" "cmake;3.22.1"
 
       - name: Vendor the exact uploaded NTR Viewer HR source revision
         run: |
@@ -47,7 +45,7 @@ jobs:
             mkdir -p android-port/upstream
             cp -a .build-ntr/. android-port/upstream/
             rm -rf android-port/upstream/.git
-            printf '%s\\n' '930f194d754141517fc247e9ce8e8392fbf70691' > android-port/upstream/.citrus-upstream-commit
+            printf '%s\n' '930f194d754141517fc247e9ce8e8392fbf70691' > android-port/upstream/.citrus-upstream-commit
             python3 android-port/app/src/main/cpp/apply_android.py
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -62,19 +60,19 @@ jobs:
           mkdir -p android-port/.build-sdl-java
           cp -R .build-sdl/android-project/app/src/main/java/org android-port/.build-sdl-java/
 
-      - name: Verify Android-specific source adaptations
+      - name: Verify Android source adaptations
         run: python3 android-port/app/src/main/cpp/apply_android.py
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
+        name: Set up Gradle
         with:
           gradle-version: '8.11.1'
 
       - name: Build arm64 APK
         run: gradle -p android-port --no-daemon assembleDebug --stacktrace
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
+        name: Upload APK
         with:
           name: Citrus-Stream-HR-Android-debug
           path: android-port/app/build/outputs/apk/debug/app-debug.apk
