@@ -37,6 +37,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The action defaults to the obsolete "tools" SDK package.
+          # Install only platform-tools here; the required API/NDK packages
+          # are installed explicitly in the next step.
+          packages: platform-tools
 
       - name: Install Android 14 build tools and NDK
         run: |
