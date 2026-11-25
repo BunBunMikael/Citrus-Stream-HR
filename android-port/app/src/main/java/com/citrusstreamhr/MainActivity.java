@@ -218,6 +218,14 @@ public class MainActivity extends SDLActivity {
         parent.addView(bar);
     }
 
+    private void setLayoutPreset(int[][] rectangles) {
+        for (int screen = 0; screen < 2; ++screen)
+            for (int field = 0; field < 4; ++field)
+                nativeSetScreenLayout(screen, field, rectangles[screen][field]);
+        nativeSaveSettings();
+        Toast.makeText(this, "Screen layout saved.", Toast.LENGTH_SHORT).show();
+    }
+
     private void addLayoutSlider(LinearLayout parent, String label, int screen, int field) {
         int minimum = field < 2 ? 0 : 10;
         addSlider(parent, label + " (%)", minimum, 100,
@@ -263,6 +271,21 @@ public class MainActivity extends SDLActivity {
 
         addSection(content, "Screen layout");
         content.addView(text("Adjust each screen independently. Changes are saved automatically.", 13, false));
+        LinearLayout presets = new LinearLayout(this);
+        presets.setOrientation(LinearLayout.HORIZONTAL);
+        Button stacked = actionButton("Stacked");
+        stacked.setOnClickListener(v -> setLayoutPreset(new int[][]{
+                {0, 0, 1000, 500}, {0, 500, 1000, 500}}));
+        Button sideBySide = actionButton("Side by side");
+        sideBySide.setOnClickListener(v -> setLayoutPreset(new int[][]{
+                {0, 0, 500, 1000}, {500, 0, 500, 1000}}));
+        Button pictureInPicture = actionButton("Overlay");
+        pictureInPicture.setOnClickListener(v -> setLayoutPreset(new int[][]{
+                {0, 0, 1000, 1000}, {650, 700, 300, 300}}));
+        presets.addView(stacked, new LinearLayout.LayoutParams(0, dp(48), 1));
+        presets.addView(sideBySide, new LinearLayout.LayoutParams(0, dp(48), 1));
+        presets.addView(pictureInPicture, new LinearLayout.LayoutParams(0, dp(48), 1));
+        content.addView(presets);
         addSection(content, "Top screen");
         addLayoutSlider(content, "Horizontal position", 0, 0);
         addLayoutSlider(content, "Vertical position", 0, 1);
