@@ -623,6 +623,37 @@ void draw_screen_get_blur_dims_lite(
 
     int i = ctx_top_bot;
 
+#ifdef __ANDROID__
+    int layout_x = ui_android_layout_get(screen_top_bot, 0);
+    int layout_y = ui_android_layout_get(screen_top_bot, 1);
+    int layout_w = ui_android_layout_get(screen_top_bot, 2);
+    int layout_h = ui_android_layout_get(screen_top_bot, 3);
+    ctx_left = (double)ui_win_width[i] * layout_x / 1000.0;
+    ctx_top = (double)ui_win_height[i] * layout_y / 1000.0;
+    ctx_width = (double)ui_win_width[i] * layout_w / 1000.0;
+    ctx_height = (double)ui_win_height[i] * layout_h / 1000.0;
+    left = ctx_left;
+    top = ctx_top;
+    width = ctx_width;
+    height = ctx_height;
+    if ((double)width / in_width * in_height > height) {
+        height = (double)width / in_width * in_height;
+        top -= ((double)height - ctx_height) / 2;
+    } else {
+        width = (double)height / in_height * width;
+        left -= ((double)width - ctx_width) / 2;
+    }
+    *out_left = left;
+    *out_top = top;
+    *out_width = width;
+    *out_height = height;
+    *out_ctx_left = ctx_left;
+    *out_ctx_top = ctx_top;
+    *out_ctx_width = ctx_width;
+    *out_ctx_height = ctx_height;
+    return;
+#endif
+
     ctx_height = view_mode == VIEW_MODE_TOP_BOT ? (double)ui_win_height[i] / 2 : ui_win_height[i];
     ctx_width = ui_win_width[i];
     if ((double)ctx_width / in_width * in_height > ctx_height) {
