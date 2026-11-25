@@ -65,6 +65,8 @@ public class MainActivity extends SDLActivity {
     private static native int nativeGetBlurRadius();
     private static native int nativeGetCursorSize();
     private static native int nativeGetScreenshotType();
+    private static native int nativeGetScreenLayout(int screen, int field);
+    private static native void nativeSetScreenLayout(int screen, int field, int value);
     private static native String[] nativeGetControllers();
     private static native int nativeGetController();
     private static native void nativeSetController(int index);
@@ -216,6 +218,21 @@ public class MainActivity extends SDLActivity {
         parent.addView(bar);
     }
 
+    private void setLayoutPreset(int[][] rectangles) {
+        for (int screen = 0; screen < 2; ++screen)
+            for (int field = 0; field < 4; ++field)
+                nativeSetScreenLayout(screen, field, rectangles[screen][field]);
+        nativeSaveSettings();
+        Toast.makeText(this, "Screen layout saved.", Toast.LENGTH_SHORT).show();
+    }
+
+    private void addLayoutSlider(LinearLayout parent, String label, int screen, int field) {
+        int minimum = field < 2 ? 0 : 10;
+        addSlider(parent, label + " (%)", minimum, 100,
+                nativeGetScreenLayout(screen, field) / 10,
+                value -> nativeSetScreenLayout(screen, field, value * 10));
+    }
+
     private EditText edit(String value, int inputType, String hint) {
         EditText field = new EditText(this);
         field.setSingleLine(true);
@@ -251,6 +268,45 @@ public class MainActivity extends SDLActivity {
         scroll.addView(content);
 
         content.addView(text("Remote Play", 23, true));
+
+        addSection(content, "Screen layout");
+        content.addView(text("Adjust each screen independently. Changes are saved automatically.", 13, false));
+        LinearLayout presets = new LinearLayout(this);
+        presets.setOrientation(LinearLayout.HORIZONTAL);
+        Button stacked = actionButton("Stacked");
+        stacked.setOnClickListener(v -> { setLayoutPreset(new int[][]{
+                {0, 0, 1000, 500}, {0, 500, 1000, 500}}); dialog.dismiss(); showSettings(); });
+        Button sideBySide = actionButton("Side by side");
+        sideBySide.setOnClickListener(v -> { setLayoutPreset(new int[][]{
+                {0, 0, 500, 1000}, {500, 0, 500, 1000}}); dialog.dismiss(); showSettings(); });
+        Button pictureInPicture = actionButton("Overlay");
+        pictureInPicture.setOnClickListener(v -> { setLayoutPreset(new int[][]{
+                {0, 0, 1000, 1000}, {650, 700, 300, 300}}); dialog.dismiss(); showSettings(); });
+        presets.addView(stacked, new LinearLayout.LayoutParams(0, dp(48), 1));
+        presets.addView(sideBySide, new LinearLayout.LayoutParams(0, dp(48), 1));
+        presets.addView(pictureInPicture, new LinearLayout.LayoutParams(0, dp(48), 1));
+        content.addView(presets);
+        addSection(content, "Top screen");
+        addLayoutSlider(content, "Horizontal position", 0, 0);
+        addLayoutSlider(content, "Vertical position", 0, 1);
+        addLayoutSlider(content, "Width", 0, 2);
+        addLayoutSlider(content, "Height", 0, 3);
+        addSection(content, "Bottom screen");
+        addLayoutSlider(content, "Horizontal position", 1, 0);
+        addLayoutSlider(content, "Vertical position", 1, 1);
+        addLayoutSlider(content, "Width", 1, 2);
+        addLayoutSlider(content, "Height", 1, 3);
+        Button resetLayout = actionButton("Reset screen layout");
+        resetLayout.setOnClickListener(v -> {
+            for (int screen = 0; screen < 2; ++screen) {
+                int[] defaults = screen == 0 ? new int[]{0, 0, 1000, 500} : new int[]{0, 500, 1000, 500};
+                for (int field = 0; field < 4; ++field)
+                    nativeSetScreenLayout(screen, field, defaults[field]);
+            }
+            dialog.dismiss();
+            showSettings();
+        });
+        content.addView(resetLayout);
         connectionStatus = text("Connection: " + nativeGetStatus(), 15, false);
         content.addView(connectionStatus);
 

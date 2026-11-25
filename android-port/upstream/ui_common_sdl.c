@@ -9,6 +9,7 @@
 #include "ntr_audio.h"
 #include "ikcp.h"
 #include <math.h>
+#include <stdatomic.h>
 
 bool is_win_size_in_pixels;
 bool is_cursor_size_in_pixels;
@@ -40,6 +41,39 @@ float ui_win_scale[SCREEN_COUNT];
 
 int ui_ctx_width[SCREEN_COUNT], ui_ctx_height[SCREEN_COUNT];
 int ui_ctx_width_drawable[SCREEN_COUNT], ui_ctx_height_drawable[SCREEN_COUNT];
+
+#ifdef __ANDROID__
+/* Normalized screen rectangles: x, y, width, height (0..1000). */
+static atomic_int android_screen_layout[SCREEN_COUNT][4] = {
+    { 0, 0, 1000, 500 },
+    { 0, 500, 1000, 500 },
+};
+
+int ui_android_layout_get(int screen, int field) {
+    if (screen < 0 || screen >= SCREEN_COUNT || field < 0 || field >= 4)
+        return 0;
+    return atomic_load(&android_screen_layout[screen][field]);
+}
+
+void ui_android_layout_set(int screen, int field, int value) {
+    if (screen < 0 || screen >= SCREEN_COUNT || field < 0 || field >= 4)
+        return;
+    int min = field < 2 ? 0 : 100;
+    if (value < min) value = min;
+    if (value > 1000) value = 1000;
+    atomic_store(&android_screen_layout[screen][field], value);
+}
+
+void ui_android_layout_reset(void) {
+    static const int defaults[SCREEN_COUNT][4] = {
+        { 0, 0, 1000, 500 },
+        { 0, 500, 1000, 500 },
+    };
+    for (int screen = 0; screen < SCREEN_COUNT; ++screen)
+        for (int field = 0; field < 4; ++field)
+            atomic_store(&android_screen_layout[screen][field], defaults[screen][field]);
+}
+#endif
 
 event_t update_bottom_screen_evt;
 
@@ -589,6 +623,37 @@ void draw_screen_get_blur_dims_lite(
 
     int i = ctx_top_bot;
 
+#ifdef __ANDROID__
+    int layout_x = ui_android_layout_get(screen_top_bot, 0);
+    int layout_y = ui_android_layout_get(screen_top_bot, 1);
+    int layout_w = ui_android_layout_get(screen_top_bot, 2);
+    int layout_h = ui_android_layout_get(screen_top_bot, 3);
+    ctx_left = (double)ui_win_width[i] * layout_x / 1000.0;
+    ctx_top = (double)ui_win_height[i] * layout_y / 1000.0;
+    ctx_width = (double)ui_win_width[i] * layout_w / 1000.0;
+    ctx_height = (double)ui_win_height[i] * layout_h / 1000.0;
+    left = ctx_left;
+    top = ctx_top;
+    width = ctx_width;
+    height = ctx_height;
+    if ((double)width / in_width * in_height > height) {
+        height = (double)width / in_width * in_height;
+        top -= ((double)height - ctx_height) / 2;
+    } else {
+        width = (double)height / in_height * in_width;
+        left -= ((double)width - ctx_width) / 2;
+    }
+    *out_left = left;
+    *out_top = top;
+    *out_width = width;
+    *out_height = height;
+    *out_ctx_left = ctx_left;
+    *out_ctx_top = ctx_top;
+    *out_ctx_width = ctx_width;
+    *out_ctx_height = ctx_height;
+    return;
+#endif
+
     ctx_height = view_mode == VIEW_MODE_TOP_BOT ? (double)ui_win_height[i] / 2 : ui_win_height[i];
     ctx_width = ui_win_width[i];
     if ((double)ctx_width / in_width * in_height > ctx_height) {
@@ -700,6 +765,29 @@ void draw_screen_get_dims_lite(
     int ctx_height;
 
     int i = ctx_top_bot;
+
+#ifdef __ANDROID__
+    int x = ui_android_layout_get(screen_top_bot, 0);
+    int y = ui_android_layout_get(screen_top_bot, 1);
+    int w = ui_android_layout_get(screen_top_bot, 2);
+    int h = ui_android_layout_get(screen_top_bot, 3);
+    double box_left = (double)ui_win_width[i] * x / 1000.0;
+    double box_top = (double)ui_win_height[i] * y / 1000.0;
+    double box_width = (double)ui_win_width[i] * w / 1000.0;
+    double box_height = (double)ui_win_height[i] * h / 1000.0;
+    double scale_x = box_width / width;
+    double scale_y = box_height / height;
+    double scale = scale_x < scale_y ? scale_x : scale_y;
+    ctx_width = (int)(width * scale);
+    ctx_height = (int)(height * scale);
+    ctx_left = (int)(box_left + (box_width - ctx_width) / 2.0);
+    ctx_top = (int)(box_top + (box_height - ctx_height) / 2.0);
+    *out_ctx_left = ctx_left;
+    *out_ctx_top = ctx_top;
+    *out_ctx_width = ctx_width;
+    *out_ctx_height = ctx_height;
+    return;
+#endif
 
     if (view_mode == VIEW_MODE_TOP_BOT) {
         ctx_height = (double)ui_win_height[i] / 2;

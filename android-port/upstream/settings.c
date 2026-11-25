@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SETTINGS_VERSION 2
+#define SETTINGS_VERSION 3
 #define SETTINGS_SAVE_DELAY_MS 1000
 #define SETTINGS_UPSCALING_NAME_MAX 64
 
@@ -45,6 +45,7 @@ struct settings_t {
     int ambience_quality;
     int ambience_blur;
     struct settings_win_t win[SCREEN_COUNT];
+    int android_layout[SCREEN_COUNT][4];
 };
 
 static struct settings_t file_settings; /* as last read or written */
@@ -87,12 +88,22 @@ static const struct settings_int_key_t int_keys[] = {
     SK("bottom_window_y", win[SCREEN_BOT].y, -100000, 100000),
     SK("bottom_window_width", win[SCREEN_BOT].w, 64, 100000),
     SK("bottom_window_height", win[SCREEN_BOT].h, 64, 100000),
+    SK("top_screen_x", android_layout[SCREEN_TOP][0], 0, 1000),
+    SK("top_screen_y", android_layout[SCREEN_TOP][1], 0, 1000),
+    SK("top_screen_width", android_layout[SCREEN_TOP][2], 100, 1000),
+    SK("top_screen_height", android_layout[SCREEN_TOP][3], 100, 1000),
+    SK("bottom_screen_x", android_layout[SCREEN_BOT][0], 0, 1000),
+    SK("bottom_screen_y", android_layout[SCREEN_BOT][1], 0, 1000),
+    SK("bottom_screen_width", android_layout[SCREEN_BOT][2], 100, 1000),
+    SK("bottom_screen_height", android_layout[SCREEN_BOT][3], 100, 1000),
 };
 #undef SK
 #define INT_KEY_COUNT ((int)(sizeof(int_keys) / sizeof(*int_keys)))
 
 #define INT_KEY_WIN_COUNT (4)
-#define INT_KEY_WIN_FIRST (INT_KEY_COUNT - INT_KEY_WIN_COUNT * SCREEN_COUNT)
+#define INT_KEY_LAYOUT_COUNT (4 * SCREEN_COUNT)
+#define INT_KEY_WIN_FIRST (INT_KEY_COUNT - INT_KEY_WIN_COUNT * SCREEN_COUNT - INT_KEY_LAYOUT_COUNT)
+#define INT_KEY_LAYOUT_FIRST (INT_KEY_WIN_FIRST + INT_KEY_WIN_COUNT * SCREEN_COUNT)
 
 const char *settings_base_path(void)
 {
@@ -161,6 +172,11 @@ static void capture(struct settings_t *s) {
     capture_window(SCREEN_TOP, &s->win[SCREEN_TOP]);
     if (s->view_mode == VIEW_MODE_SEPARATE)
         capture_window(SCREEN_BOT, &s->win[SCREEN_BOT]);
+#ifdef __ANDROID__
+    for (int screen = 0; screen < SCREEN_COUNT; ++screen)
+        for (int field = 0; field < 4; ++field)
+            s->android_layout[screen][field] = ui_android_layout_get(screen, field);
+#endif
 }
 
 static char *trim(char *p) {
@@ -245,7 +261,7 @@ static bool read_file(struct settings_t *s) {
             continue;
         }
         *(int *)((char *)s + int_keys[k].offset) = n;
-        if (k >= INT_KEY_WIN_FIRST) {
+        if (k >= INT_KEY_WIN_FIRST && k < INT_KEY_LAYOUT_FIRST) {
             int w = (k - INT_KEY_WIN_FIRST) / INT_KEY_WIN_COUNT;
             win_seen[w][(k - INT_KEY_WIN_FIRST) % INT_KEY_WIN_COUNT] = true;
         }
@@ -279,7 +295,10 @@ static bool write_file(const struct settings_t *s) {
     for (int k = 0; ok && k < INT_KEY_COUNT; ++k) {
         if (k == INT_KEY_WIN_FIRST)
             ok = SDL_IOprintf(io, "\n[windows]\n");
-        if (k >= INT_KEY_WIN_FIRST && !s->win[(k - INT_KEY_WIN_FIRST) / INT_KEY_WIN_COUNT].valid)
+        if (k == INT_KEY_LAYOUT_FIRST)
+            ok = SDL_IOprintf(io, "\n[screen_layout]\n");
+        if (k >= INT_KEY_WIN_FIRST && k < INT_KEY_LAYOUT_FIRST &&
+            !s->win[(k - INT_KEY_WIN_FIRST) / INT_KEY_WIN_COUNT].valid)
             continue;
         ok = ok && SDL_IOprintf(io, "%s=%d\n", int_keys[k].name,
             *(const int *)((const char *)s + int_keys[k].offset));
@@ -333,6 +352,11 @@ void settings_load(void) {
     sdl_bottom_screen_cursor_size = s.cursor_size;
     ui_blur_iter = s.ambience_quality;
     ui_blur_radius = s.ambience_blur;
+#ifdef __ANDROID__
+    for (int screen = 0; screen < SCREEN_COUNT; ++screen)
+        for (int field = 0; field < 4; ++field)
+            ui_android_layout_set(screen, field, s.android_layout[screen][field]);
+#endif
 
     if (ui_upscaling_filter_options) {
         for (int i = 0; i < ui_upscaling_filter_count; ++i) {

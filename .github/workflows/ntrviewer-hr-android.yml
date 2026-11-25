@@ -1,8 +1,9 @@
 name: NTR Viewer HR Android APK
+# Also builds the in-app layout editor feature branch.
 
 on:
   push:
-    branches: [main]
+    branches: [main, android-screen-layout-editor]
     paths:
       - 'android-port/**'
       - '.github/workflows/ntrviewer-hr-android.yml'
