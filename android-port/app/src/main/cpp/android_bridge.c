@@ -304,6 +304,22 @@ JNIEXPORT jint JNICALL Java_com_citrusstreamhr_MainActivity_nativeGetCursorSize(
 { (void)env; (void)cls; lock_settings(); int v=sdl_bottom_screen_cursor_size; unlock_settings(); return v; }
 JNIEXPORT void JNICALL Java_com_citrusstreamhr_MainActivity_nativeSetCursorSize(JNIEnv *env, jclass cls, jint v)
 { (void)env; (void)cls; if(v>=0 && v<=3) { lock_settings(); sdl_bottom_screen_cursor_size=v; unlock_settings(); } }
+#ifdef __ANDROID__
+JNIEXPORT jint JNICALL
+Java_com_citrusstreamhr_MainActivity_nativeGetScreenLayout(JNIEnv *env, jclass cls, jint screen, jint field)
+{
+    (void)env; (void)cls;
+    return ui_android_layout_get(screen, field);
+}
+JNIEXPORT void JNICALL
+Java_com_citrusstreamhr_MainActivity_nativeSetScreenLayout(JNIEnv *env, jclass cls, jint screen, jint field, jint value)
+{
+    (void)env; (void)cls;
+    ui_android_layout_set(screen, field, value);
+    settings_save();
+}
+#endif
+
 JNIEXPORT jint JNICALL Java_com_citrusstreamhr_MainActivity_nativeGetScreenshotType(JNIEnv *env, jclass cls)
 { (void)env; (void)cls; return (jint)scrn_ty; }
 JNIEXPORT void JNICALL Java_com_citrusstreamhr_MainActivity_nativeSetScreenshotType(JNIEnv *env, jclass cls, jint v)
