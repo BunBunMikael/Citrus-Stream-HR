@@ -57,6 +57,12 @@ extern int ui_win_width[SCREEN_COUNT], ui_win_height[SCREEN_COUNT];
 extern int ui_win_width_drawable[SCREEN_COUNT], ui_win_height_drawable[SCREEN_COUNT];
 extern float ui_win_scale[SCREEN_COUNT];
 
+#ifdef __ANDROID__
+int ui_android_layout_get(int screen, int field);
+void ui_android_layout_set(int screen, int field, int value);
+void ui_android_layout_reset(void);
+#endif
+
 extern int ui_ctx_width[SCREEN_COUNT], ui_ctx_height[SCREEN_COUNT];
 extern int ui_ctx_width_drawable[SCREEN_COUNT], ui_ctx_height_drawable[SCREEN_COUNT];
 
