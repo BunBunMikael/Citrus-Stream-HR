@@ -219,9 +219,10 @@ public class MainActivity extends SDLActivity {
     }
 
     private void addLayoutSlider(LinearLayout parent, String label, int screen, int field) {
-        addSlider(parent, label, field < 2 ? 0 : 100, 1000,
-                nativeGetScreenLayout(screen, field),
-                value -> nativeSetScreenLayout(screen, field, value));
+        int minimum = field < 2 ? 0 : 10;
+        addSlider(parent, label + " (%)", minimum, 100,
+                nativeGetScreenLayout(screen, field) / 10,
+                value -> nativeSetScreenLayout(screen, field, value * 10));
     }
 
     private EditText edit(String value, int inputType, String hint) {
