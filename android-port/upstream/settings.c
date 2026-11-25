@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SETTINGS_VERSION 1
+#define SETTINGS_VERSION 2
 #define SETTINGS_SAVE_DELAY_MS 1000
 #define SETTINGS_UPSCALING_NAME_MAX 64
 
@@ -204,6 +204,7 @@ static bool read_file(struct settings_t *s) {
     }
 
     bool win_seen[SCREEN_COUNT][4] = {};
+    int file_version = 1;
     char *save = NULL;
     for (char *line = SDL_strtok_r(data, "\n", &save); line; line = SDL_strtok_r(NULL, "\n", &save)) {
         line = trim(line);
@@ -217,6 +218,12 @@ static bool read_file(struct settings_t *s) {
         *eq = 0;
         char *key = trim(line), *val = trim(eq + 1);
 
+        if (strcmp(key, "version") == 0) {
+            int version;
+            if (parse_int(val, &version) && version > 0)
+                file_version = version;
+            continue;
+        }
         if (strcmp(key, "ip") == 0) {
             if (!parse_ip(val, s->ip))
                 err_log("settings: bad ip \"%s\"\n", val);
@@ -247,6 +254,10 @@ static bool read_file(struct settings_t *s) {
 
     for (int i = 0; i < SCREEN_COUNT; ++i)
         s->win[i].valid = win_seen[i][0] && win_seen[i][1] && win_seen[i][2] && win_seen[i][3];
+    /* Version 1 inherited the upstream face-button swap default. Treat that
+     * old default as unset once; users can enable swapping again if wanted. */
+    if (file_version < 2)
+        s->swap_face_buttons = 0;
     return true;
 }
 

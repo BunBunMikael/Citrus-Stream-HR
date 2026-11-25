@@ -487,6 +487,8 @@ static void get_ntr_detect_3ds_ip(void) {
     unsigned *map_index = 0;
     if (ip_net_buf_count) {
         map_index = malloc(ip_net_buf_count * sizeof(*map_index));
+        if (!map_index)
+            return;
         for (unsigned i = 0; i < ip_net_buf_count; ++i) {
             if (match_mac(ip_net_buf[i].mac_bytes)) {
                 map_index[detected_ip_count] = i;
@@ -496,7 +498,11 @@ static void get_ntr_detect_3ds_ip(void) {
     }
 
     ntr_free_auto_ip_list();
-    ntr_alloc_auto_ip_list(detected_ip_count + NTR_AUTO_IP_PRE_COUNT);
+    if (ntr_alloc_auto_ip_list(detected_ip_count + NTR_AUTO_IP_PRE_COUNT) != 0) {
+        ntr_selected_ip = 0;
+        free(map_index);
+        return;
+    }
 
     if (detected_ip_count) {
         strcpy(ntr_auto_ip_list[0], "");
@@ -773,7 +779,11 @@ void ntr_get_adapter_list(void)
         }
     }
 
-    ntr_alloc_adapter_list(count + NTR_ADAPTER_EXTRA_COUNT);
+    if (ntr_alloc_adapter_list(count + NTR_ADAPTER_EXTRA_COUNT) != 0) {
+        if (ifaddr)
+            freeifaddrs(ifaddr);
+        return;
+    }
 
     strcpy(ntr_adapter_list[0], "0.0.0.0 (Any)");
     memset(ntr_adapter_octet_list[0], 0, NTR_IP_OCTET_SIZE);

@@ -2979,16 +2979,23 @@ thread_ret_t udp_recv_thread_func(void *)
         struct sockaddr_in si_other;
         si_other.sin_family = AF_INET;
         si_other.sin_port = htons(ntr_rp_port_bound);
-        si_other.sin_addr.s_addr = ntr_adapter_octet_list ? *(uint32_t *)ntr_adapter_octet_list[ntr_selected_adapter] : 0;
+        /* Adapter discovery can replace/free this list from the Android UI.
+         * Copy the selected address under the same lock used by JNI refresh. */
+        uint8_t bind_octets[NTR_IP_OCTET_SIZE] = {0, 0, 0, 0};
+        rp_lock_wait(ui_nk_lock);
+        if (ntr_adapter_octet_list && ntr_selected_adapter >= 0 &&
+            ntr_selected_adapter < ntr_adapter_count && ntr_adapter_octet_list[ntr_selected_adapter]) {
+            memcpy(bind_octets, ntr_adapter_octet_list[ntr_selected_adapter], NTR_IP_OCTET_SIZE);
+        }
+        rp_lock_rel(ui_nk_lock);
+        memcpy(&si_other.sin_addr.s_addr, bind_octets, sizeof(bind_octets));
 
         if (bind(s, (struct sockaddr *)&si_other, sizeof(si_other)) == SOCKET_ERROR) {
             err_log("socket bind failed for port %d\n", ntr_rp_port_bound);
             socket_error_pause();
             goto socket_final;
         }
-        uint8_t octets_null[] = {0, 0, 0, 0};
-        uint8_t *octets = ntr_adapter_octet_list ? ntr_adapter_octet_list[ntr_selected_adapter] : octets_null;
-        err_log("port bound at %d.%d.%d.%d:%d\n", (int)octets[0], (int)octets[1], (int)octets[2], (int)octets[3], ntr_rp_port_bound);
+        err_log("port bound at %d.%d.%d.%d:%d\n", (int)bind_octets[0], (int)bind_octets[1], (int)bind_octets[2], (int)bind_octets[3], ntr_rp_port_bound);
         ntr_rp_port_changed = 0;
         ntr_rp_port = ntr_rp_port_bound;
 

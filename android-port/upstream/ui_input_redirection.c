@@ -553,8 +553,8 @@ int ui_num_controllers;
 int ui_controller_selected;
 const char **ui_controllers_names;
 int *ui_controllers_ids;
-nk_bool ui_controller_swap_face_buttons = 1;
-static bool need_update_game_controllers;
+nk_bool ui_controller_swap_face_buttons = 0;
+static atomic_bool need_update_game_controllers;
 
 static void do_ui_update_game_controllers(void) {
     rp_lock_wait(ui_nk_lock);
@@ -577,6 +577,16 @@ static void do_ui_update_game_controllers(void) {
     int ui_n = 1 + n + 1;
     ui_controllers_names = malloc(sizeof(const char *) * ui_n);
     ui_controllers_ids = malloc(sizeof(int) * ui_n);
+    if (!ui_controllers_names || !ui_controllers_ids) {
+        free(ui_controllers_names);
+        free(ui_controllers_ids);
+        ui_controllers_names = NULL;
+        ui_controllers_ids = NULL;
+        ui_controller_selected = 0;
+        SDL_free(ids);
+        rp_lock_rel(ui_nk_lock);
+        return;
+    }
 
     int nn = 0;
     ui_controllers_names[nn] = ""; // Empty none entry (input redirection disabled)
@@ -608,9 +618,8 @@ static void do_ui_update_game_controllers(void) {
 void update_game_controller(void) {
     rp_lock_wait(sdl_game_controller_lock);
 
-    if (need_update_game_controllers) {
+    if (atomic_exchange(&need_update_game_controllers, false)) {
         do_ui_update_game_controllers();
-        need_update_game_controllers = false;
     }
 
     int controller_selected = ui_controller_selected;
@@ -795,5 +804,5 @@ Uint32 SDLCALL input_redirection_timer_cb(void *, SDL_TimerID, Uint32 interval) 
 }
 
 void ui_update_game_controllers(void) {
-    need_update_game_controllers = true;
+    atomic_store(&need_update_game_controllers, true);
 }

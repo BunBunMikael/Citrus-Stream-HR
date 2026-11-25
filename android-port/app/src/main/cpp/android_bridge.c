@@ -153,7 +153,6 @@ Java_com_citrusstreamhr_MainActivity_nativeSetIp(JNIEnv *env, jclass cls, jstrin
         ntr_selected_ip = 0;
         if (ntr_auto_ip_list)
             strcpy(ntr_auto_ip_list[0], "Manual");
-        ntr_get_adapter_list();
         if (atomic_load(&menu_work_state) == CONNECTION_STATE_CONNECTED)
             atomic_store(&menu_work_req_state, CONNECTION_REQ_STATE_DISCONNECTING);
         unlock_settings();
@@ -170,7 +169,6 @@ Java_com_citrusstreamhr_MainActivity_nativeAutoDetect(JNIEnv *env, jclass cls)
         atomic_store(&menu_work_req_state, CONNECTION_REQ_STATE_DISCONNECTING);
     ntr_detect_3ds_ip();
     ntr_try_auto_select_incoming_ip();
-    ntr_get_adapter_list();
     unlock_settings();
     return Java_com_citrusstreamhr_MainActivity_nativeGetIp(env, cls);
 }
@@ -413,4 +411,10 @@ Java_com_citrusstreamhr_MainActivity_nativeResetDefaults(JNIEnv *env, jclass cls
 {
     (void)env; (void)cls;
     lock_settings(); ntr_config_set_default(); unlock_settings();
+}
+JNIEXPORT void JNICALL
+Java_com_citrusstreamhr_MainActivity_nativeSaveSettings(JNIEnv *env, jclass cls)
+{
+    (void)env; (void)cls;
+    settings_save();
 }

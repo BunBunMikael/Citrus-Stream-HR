@@ -91,6 +91,7 @@ public class MainActivity extends SDLActivity {
     private static native void nativeConnect();
     private static native void nativeDisconnect();
     private static native void nativeResetDefaults();
+    private static native void nativeSaveSettings();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -456,11 +457,7 @@ public class MainActivity extends SDLActivity {
             if (refreshedIps != null) detectedAdapter.addAll(java.util.Arrays.asList(refreshedIps));
             detectedAdapter.notifyDataSetChanged();
             detectedIp.setSelection(Math.max(0, Math.min(detectedAdapter.getCount() - 1, nativeGetSelectedDetectedIp())));
-            String[] refreshedInterfaces = nativeGetViewerInterfaces();
-            networkAdapter.clear();
-            if (refreshedInterfaces != null) networkAdapter.addAll(java.util.Arrays.asList(refreshedInterfaces));
-            networkAdapter.notifyDataSetChanged();
-            networkInterface.setSelection(Math.max(0, Math.min(networkAdapter.getCount() - 1, nativeGetViewerInterface())));
+            nativeSaveSettings();
             Toast.makeText(this, "Connection settings applied.", Toast.LENGTH_SHORT).show();
             refreshConnection();
         });
