@@ -684,6 +684,7 @@ static bool android_handle_finger_event(const SDL_Event *event) {
             }
             break;
         case SDL_EVENT_FINGER_UP:
+        case SDL_EVENT_FINGER_CANCELED:
             if (android_touch_active && event->tfinger.fingerID == android_touch_finger) {
                 android_process_finger_event(&event->tfinger, SDL_EVENT_MOUSE_BUTTON_UP);
                 android_touch_active = false;
@@ -731,7 +732,8 @@ static void main_loop(void) {
 #ifdef __ANDROID__
             if (evt.type == SDL_EVENT_FINGER_DOWN ||
                 evt.type == SDL_EVENT_FINGER_MOTION ||
-                evt.type == SDL_EVENT_FINGER_UP) {
+                evt.type == SDL_EVENT_FINGER_UP ||
+                evt.type == SDL_EVENT_FINGER_CANCELED) {
                 android_handle_finger_event(&evt);
                 goto skip_evt;
             }
