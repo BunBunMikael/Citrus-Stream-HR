@@ -274,14 +274,14 @@ public class MainActivity extends SDLActivity {
         LinearLayout presets = new LinearLayout(this);
         presets.setOrientation(LinearLayout.HORIZONTAL);
         Button stacked = actionButton("Stacked");
-        stacked.setOnClickListener(v -> setLayoutPreset(new int[][]{
-                {0, 0, 1000, 500}, {0, 500, 1000, 500}}));
+        stacked.setOnClickListener(v -> { setLayoutPreset(new int[][]{
+                {0, 0, 1000, 500}, {0, 500, 1000, 500}}); dialog.dismiss(); showSettings(); });
         Button sideBySide = actionButton("Side by side");
-        sideBySide.setOnClickListener(v -> setLayoutPreset(new int[][]{
-                {0, 0, 500, 1000}, {500, 0, 500, 1000}}));
+        sideBySide.setOnClickListener(v -> { setLayoutPreset(new int[][]{
+                {0, 0, 500, 1000}, {500, 0, 500, 1000}}); dialog.dismiss(); showSettings(); });
         Button pictureInPicture = actionButton("Overlay");
-        pictureInPicture.setOnClickListener(v -> setLayoutPreset(new int[][]{
-                {0, 0, 1000, 1000}, {650, 700, 300, 300}}));
+        pictureInPicture.setOnClickListener(v -> { setLayoutPreset(new int[][]{
+                {0, 0, 1000, 1000}, {650, 700, 300, 300}}); dialog.dismiss(); showSettings(); });
         presets.addView(stacked, new LinearLayout.LayoutParams(0, dp(48), 1));
         presets.addView(sideBySide, new LinearLayout.LayoutParams(0, dp(48), 1));
         presets.addView(pictureInPicture, new LinearLayout.LayoutParams(0, dp(48), 1));
