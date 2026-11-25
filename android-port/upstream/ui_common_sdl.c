@@ -640,7 +640,7 @@ void draw_screen_get_blur_dims_lite(
         height = (double)width / in_width * in_height;
         top -= ((double)height - ctx_height) / 2;
     } else {
-        width = (double)height / in_height * width;
+        width = (double)height / in_height * in_width;
         left -= ((double)width - ctx_width) / 2;
     }
     *out_left = left;
