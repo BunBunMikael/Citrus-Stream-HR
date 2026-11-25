@@ -387,9 +387,11 @@ static int sdl_get_bottom_screen_mouse_coord(view_mode_t vm, Uint32 wid, Sint32 
         return 1;
     }
 
+#ifndef __ANDROID__
     if (i == SCREEN_TOP && !ui_hide_nk_windows) {
         return 1;
     }
+#endif
 
     if (wid != ui_sdl_win_id[i]) {
         return 1;
