@@ -1,4 +1,5 @@
 name: NTR Viewer HR Android APK
+# Also builds the in-app layout editor feature branch.
 
 on:
   push:
