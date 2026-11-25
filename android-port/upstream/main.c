@@ -640,6 +640,59 @@ static thread_ret_t window_thread_func(void *arg) {
     return (thread_ret_t)(uintptr_t)NULL;
 }
 
+#ifdef __ANDROID__
+/*
+ * SDL's Android backend may deliver native finger events without generating
+ * mouse events. Translate one active finger into the mouse events expected by
+ * the existing bottom-screen touch redirection code.
+ */
+static SDL_FingerID android_touch_finger;
+static bool android_touch_active;
+
+static bool android_process_finger_event(const SDL_TouchFingerEvent *finger, Uint32 type) {
+    SDL_Event mouse = {0};
+    mouse.type = type;
+    if (type == SDL_EVENT_MOUSE_BUTTON_DOWN || type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        mouse.button.windowID = finger->windowID;
+        mouse.button.button = SDL_BUTTON_LEFT;
+        mouse.button.x = finger->x * ui_win_width[SCREEN_TOP];
+        mouse.button.y = finger->y * ui_win_height[SCREEN_TOP];
+    } else {
+        mouse.motion.windowID = finger->windowID;
+        mouse.motion.x = finger->x * ui_win_width[SCREEN_TOP];
+        mouse.motion.y = finger->y * ui_win_height[SCREEN_TOP];
+    }
+    return sdl_process_bottom_screen_event(&mouse);
+}
+
+static bool android_handle_finger_event(const SDL_Event *event) {
+    switch (event->type) {
+        case SDL_EVENT_FINGER_DOWN:
+            if (!android_touch_active &&
+                android_process_finger_event(&event->tfinger, SDL_EVENT_MOUSE_BUTTON_DOWN)) {
+                android_touch_finger = event->tfinger.fingerID;
+                android_touch_active = true;
+                return true;
+            }
+            break;
+        case SDL_EVENT_FINGER_MOTION:
+            if (android_touch_active && event->tfinger.fingerID == android_touch_finger) {
+                android_process_finger_event(&event->tfinger, SDL_EVENT_MOUSE_MOTION);
+                return true;
+            }
+            break;
+        case SDL_EVENT_FINGER_UP:
+            if (android_touch_active && event->tfinger.fingerID == android_touch_finger) {
+                android_process_finger_event(&event->tfinger, SDL_EVENT_MOUSE_BUTTON_UP);
+                android_touch_active = false;
+                return true;
+            }
+            break;
+    }
+    return false;
+}
+#endif
+
 static void main_loop(void) {
     // TODO csc
 
@@ -673,6 +726,14 @@ static void main_loop(void) {
 #error TODO
 #endif
         } else {
+#ifdef __ANDROID__
+            if (evt.type == SDL_EVENT_FINGER_DOWN ||
+                evt.type == SDL_EVENT_FINGER_MOTION ||
+                evt.type == SDL_EVENT_FINGER_UP) {
+                android_handle_finger_event(&evt);
+                goto skip_evt;
+            }
+#endif
             switch (evt.type) {
                 case SDL_EVENT_MOUSE_MOTION:
                     if (
