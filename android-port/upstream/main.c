@@ -651,16 +651,18 @@ static bool android_touch_active;
 
 static bool android_process_finger_event(const SDL_TouchFingerEvent *finger, Uint32 type) {
     SDL_Event mouse = {0};
+    int window_width = 0, window_height = 0;
+    SDL_GetWindowSize(ui_sdl_win[SCREEN_TOP], &window_width, &window_height);
     mouse.type = type;
     if (type == SDL_EVENT_MOUSE_BUTTON_DOWN || type == SDL_EVENT_MOUSE_BUTTON_UP) {
         mouse.button.windowID = finger->windowID;
         mouse.button.button = SDL_BUTTON_LEFT;
-        mouse.button.x = finger->x * ui_win_width[SCREEN_TOP];
-        mouse.button.y = finger->y * ui_win_height[SCREEN_TOP];
+        mouse.button.x = finger->x * window_width;
+        mouse.button.y = finger->y * window_height;
     } else {
         mouse.motion.windowID = finger->windowID;
-        mouse.motion.x = finger->x * ui_win_width[SCREEN_TOP];
-        mouse.motion.y = finger->y * ui_win_height[SCREEN_TOP];
+        mouse.motion.x = finger->x * window_width;
+        mouse.motion.y = finger->y * window_height;
     }
     return sdl_process_bottom_screen_event(&mouse);
 }
